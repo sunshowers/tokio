@@ -178,7 +178,7 @@ feature! {
                         let read_bytes = &buf.filled()[old_filled..];
                         if read_bytes.iter().all(|x| *x == 0) {
                             eprintln!("[tokio] chunk of {} bytes is all 0", read_bytes.len());
-                            std::thread::sleep(std::time::Duration::from_secs(1800));
+                            panic!("hello!");
                         }
                         return Poll::Ready(Ok(()));
                     },
