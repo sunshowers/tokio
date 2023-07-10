@@ -172,8 +172,13 @@ feature! {
 
                         // Safety: We trust `TcpStream::read` to have filled up `n` bytes in the
                         // buffer.
+                        let old_filled = buf.filled().len();
                         buf.assume_init(n);
                         buf.advance(n);
+                        let read_bytes = &buf.filled()[old_filled..];
+                        if read_bytes.iter().all(|x| *x == 0) {
+                            eprintln!("[tokio] chunk of {} bytes is all 0", read_bytes.len());
+                        }
                         return Poll::Ready(Ok(()));
                     },
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
