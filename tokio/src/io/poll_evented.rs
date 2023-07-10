@@ -138,6 +138,21 @@ impl<E: Source> PollEvented<E> {
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct ZeroByteData {
+    // hex string
+    pub buf_ptr: String,
+    pub read_bytes: Vec<u8>,
+}
+
+#[usdt::provider]
+mod test {
+    use crate::io::poll_evented::ZeroByteData;
+
+    fn on_zero_bytes_before(data: &ZeroByteData) {}
+    fn on_zero_bytes_after(data: &ZeroByteData) {}
+}
+
 feature! {
     #![any(feature = "net", all(unix, feature = "process"))]
 
@@ -176,8 +191,35 @@ feature! {
                         buf.assume_init(n);
                         buf.advance(n);
                         let read_bytes = &buf.filled()[old_filled..];
+                        if read_bytes.len() == 0 {
+                            return Poll::Ready(Ok(()));
+                        }
+
                         if read_bytes.iter().all(|x| *x == 0) {
+                            let header = if read_bytes.len() < 16 {
+                                read_bytes
+                            } else {
+                                &read_bytes[..16]
+                            };
+                            let data = ZeroByteData {
+                                buf_ptr: format!("{:p}", read_bytes),
+                                read_bytes: header.to_owned(),
+                            };
+                            test::on_zero_bytes_before!(|| &data);
+
                             eprintln!("[tokio] chunk of {} bytes is all 0", read_bytes.len());
+
+                            let header = if read_bytes.len() < 16 {
+                                read_bytes
+                            } else {
+                                &read_bytes[..16]
+                            };
+                            let data = ZeroByteData {
+                                buf_ptr: format!("{:p}", read_bytes),
+                                read_bytes: header.to_owned(),
+                            };
+                            test::on_zero_bytes_after!(|| &data);
+
                             panic!("hello!");
                         }
                         return Poll::Ready(Ok(()));
