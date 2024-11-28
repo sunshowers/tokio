@@ -130,7 +130,8 @@ impl SignalKind {
         target_os = "freebsd",
         target_os = "macos",
         target_os = "netbsd",
-        target_os = "openbsd"
+        target_os = "openbsd",
+        target_os = "illumos"
     ))]
     pub const fn info() -> Self {
         Self(libc::SIGINFO)
